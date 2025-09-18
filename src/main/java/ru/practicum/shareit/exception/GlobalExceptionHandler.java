@@ -5,6 +5,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.practicum.shareit.item.exception.ItemAccessDeniedException;
 import ru.practicum.shareit.item.exception.ItemNotFoundException;
 import ru.practicum.shareit.item.exception.ItemValidationException;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
@@ -45,6 +46,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ItemValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleItemValidationException(ItemValidationException ex) {
+        return new ErrorResponse(ex.getMessage());
+    }
+
+    @ExceptionHandler(ItemAccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleItemAccessDeniedException(ItemAccessDeniedException ex) {
         return new ErrorResponse(ex.getMessage());
     }
 

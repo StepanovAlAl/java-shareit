@@ -2,6 +2,7 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.item.exception.ItemAccessDeniedException;
 import ru.practicum.shareit.item.exception.ItemNotFoundException;
 import ru.practicum.shareit.item.exception.ItemValidationException;
 import ru.practicum.shareit.item.model.Item;
@@ -38,7 +39,7 @@ public class ItemServiceImpl implements ItemService {
         }
 
         if (!existingItem.getOwner().getId().equals(userId)) {
-            throw new ItemValidationException("Only owner can update item");
+            throw new ItemAccessDeniedException("Only owner can update item");
         }
 
         if (item.getName() != null) {
@@ -79,8 +80,8 @@ public class ItemServiceImpl implements ItemService {
         String searchText = text.toLowerCase();
         return items.values().stream()
                 .filter(item -> Boolean.TRUE.equals(item.getAvailable()))
-                .filter(item -> item.getName().toLowerCase().contains(searchText) ||
-                        item.getDescription().toLowerCase().contains(searchText))
+                .filter(item -> (item.getName() != null && item.getName().toLowerCase().contains(searchText)) ||
+                        (item.getDescription() != null && item.getDescription().toLowerCase().contains(searchText))) // Добавлены проверки на null
                 .collect(Collectors.toList());
     }
 }
