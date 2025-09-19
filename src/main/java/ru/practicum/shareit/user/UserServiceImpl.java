@@ -1,28 +1,26 @@
 package ru.practicum.shareit.user;
 
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.user.exception.UserNotFoundException;
+import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.exception.EmailAlreadyExistsException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final Map<Long, User> users = new HashMap<>();
-    private final Map<String, Long> emailToUserId = new HashMap<>();
+    private final Set<String> emails = new HashSet<>();
     private Long nextId = 1L;
 
     @Override
     public User createUser(User user) {
-        if (emailToUserId.containsKey(user.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
+        if (emails.contains(user.getEmail())) {
+            throw new EmailAlreadyExistsException("Email already exists");
         }
 
         user.setId(nextId++);
         users.put(user.getId(), user);
-        emailToUserId.put(user.getEmail(), user.getId());
+        emails.add(user.getEmail());
         return user;
     }
 
@@ -30,15 +28,15 @@ public class UserServiceImpl implements UserService {
     public User updateUser(Long userId, User user) {
         User existingUser = users.get(userId);
         if (existingUser == null) {
-            throw new UserNotFoundException("User with id " + userId + " not found");
+            throw new NotFoundException("User with id " + userId + " not found");
         }
 
         if (user.getEmail() != null && !user.getEmail().equals(existingUser.getEmail())) {
-            if (emailToUserId.containsKey(user.getEmail())) {
-                throw new IllegalArgumentException("Email already exists");
+            if (emails.contains(user.getEmail())) {
+                throw new EmailAlreadyExistsException("Email already exists");
             }
-            emailToUserId.remove(existingUser.getEmail());
-            emailToUserId.put(user.getEmail(), userId);
+            emails.remove(existingUser.getEmail());
+            emails.add(user.getEmail());
             existingUser.setEmail(user.getEmail());
         }
 
@@ -53,7 +51,7 @@ public class UserServiceImpl implements UserService {
     public User getUserById(Long userId) {
         User user = users.get(userId);
         if (user == null) {
-            throw new UserNotFoundException("User with id " + userId + " not found");
+            throw new NotFoundException("User with id " + userId + " not found");
         }
         return user;
     }
@@ -67,9 +65,9 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long userId) {
         User user = users.get(userId);
         if (user == null) {
-            throw new UserNotFoundException("User with id " + userId + " not found");
+            throw new NotFoundException("User with id " + userId + " not found");
         }
-        emailToUserId.remove(user.getEmail());
+        emails.remove(user.getEmail());
         users.remove(userId);
     }
 }

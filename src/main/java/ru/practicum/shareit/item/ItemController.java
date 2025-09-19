@@ -3,6 +3,7 @@ package ru.practicum.shareit.item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemRequestDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 
@@ -16,20 +17,21 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ItemController {
     private final ItemService itemService;
+    private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
     @PostMapping
-    public ItemDto createItem(@Valid @RequestBody ItemDto itemDto,
-                              @RequestHeader("X-Sharer-User-Id") Long userId) {
-        Item item = ItemMapper.toItem(itemDto);
+    public ItemDto createItem(@Valid @RequestBody ItemRequestDto itemRequestDto,
+                              @RequestHeader(USER_ID_HEADER) Long userId) {
+        Item item = ItemMapper.toItem(itemRequestDto);
         Item createdItem = itemService.createItem(item, userId);
         return ItemMapper.toDto(createdItem);
     }
 
     @PatchMapping("/{itemId}")
     public ItemDto updateItem(@PathVariable Long itemId,
-                              @RequestBody ItemDto itemDto,
-                              @RequestHeader("X-Sharer-User-Id") Long userId) {
-        Item item = ItemMapper.toItem(itemDto);
+                              @RequestBody ItemRequestDto itemRequestDto,
+                              @RequestHeader(USER_ID_HEADER) Long userId) {
+        Item item = ItemMapper.toItem(itemRequestDto);
         Item updatedItem = itemService.updateItem(itemId, item, userId);
         return ItemMapper.toDto(updatedItem);
     }
@@ -41,7 +43,7 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemDto> getUserItems(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public List<ItemDto> getUserItems(@RequestHeader(USER_ID_HEADER) Long userId) {
         return itemService.getUserItems(userId).stream()
                 .map(ItemMapper::toDto)
                 .collect(Collectors.toList());

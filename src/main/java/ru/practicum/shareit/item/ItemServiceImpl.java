@@ -2,8 +2,8 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.item.exception.ItemAccessDeniedException;
-import ru.practicum.shareit.item.exception.ItemNotFoundException;
+import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.exception.ItemAccessDeniedException;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserService;
@@ -32,9 +32,10 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Item updateItem(Long itemId, Item item, Long userId) {
+        userService.getUserById(userId);
         Item existingItem = items.get(itemId);
         if (existingItem == null) {
-            throw new ItemNotFoundException("Item with id " + itemId + " not found");
+            throw new NotFoundException("Item with id " + itemId + " not found");
         }
 
         if (!existingItem.getOwner().getId().equals(userId)) {
@@ -58,13 +59,14 @@ public class ItemServiceImpl implements ItemService {
     public Item getItemById(Long itemId) {
         Item item = items.get(itemId);
         if (item == null) {
-            throw new ItemNotFoundException("Item with id " + itemId + " not found");
+            throw new NotFoundException("Item with id " + itemId + " not found");
         }
         return item;
     }
 
     @Override
     public List<Item> getUserItems(Long userId) {
+        userService.getUserById(userId);
         return items.values().stream()
                 .filter(item -> item.getOwner().getId().equals(userId))
                 .collect(Collectors.toList());
@@ -80,7 +82,7 @@ public class ItemServiceImpl implements ItemService {
         return items.values().stream()
                 .filter(item -> Boolean.TRUE.equals(item.getAvailable()))
                 .filter(item -> (item.getName() != null && item.getName().toLowerCase().contains(searchText)) ||
-                        (item.getDescription() != null && item.getDescription().toLowerCase().contains(searchText))) // Добавлены проверки на null
+                        (item.getDescription() != null && item.getDescription().toLowerCase().contains(searchText)))
                 .collect(Collectors.toList());
     }
 }
