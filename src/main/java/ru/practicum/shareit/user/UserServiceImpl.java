@@ -1,73 +1,71 @@
 package ru.practicum.shareit.user;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.EmailAlreadyExistsException;
 
-import java.util.*;
+import java.util.List;
 
 @Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
-    private final Map<Long, User> users = new HashMap<>();
-    private final Set<String> emails = new HashSet<>();
-    private Long nextId = 1L;
+    private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public User createUser(User user) {
-        if (emails.contains(user.getEmail())) {
+        try {
+            return userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
             throw new EmailAlreadyExistsException("Email already exists");
         }
-
-        user.setId(nextId++);
-        users.put(user.getId(), user);
-        emails.add(user.getEmail());
-        return user;
     }
 
     @Override
-    public User updateUser(Long userId, User user) {
-        User existingUser = users.get(userId);
-        if (existingUser == null) {
-            throw new NotFoundException("User with id " + userId + " not found");
-        }
+    @Transactional
+    public User updateUser(Long userId, User userUpdates) {
+        User existingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User with id " + userId + " not found"));
 
-        if (user.getEmail() != null && !user.getEmail().equals(existingUser.getEmail())) {
-            if (emails.contains(user.getEmail())) {
+        if (userUpdates.getEmail() != null && !userUpdates.getEmail().equals(existingUser.getEmail())) {
+            if (userRepository.findByEmail(userUpdates.getEmail()).isPresent()) {
                 throw new EmailAlreadyExistsException("Email already exists");
             }
-            emails.remove(existingUser.getEmail());
-            emails.add(user.getEmail());
-            existingUser.setEmail(user.getEmail());
+            existingUser.setEmail(userUpdates.getEmail());
         }
 
-        if (user.getName() != null) {
-            existingUser.setName(user.getName());
+        if (userUpdates.getName() != null) {
+            existingUser.setName(userUpdates.getName());
         }
 
-        return existingUser;
+        try {
+            return userRepository.save(existingUser);
+        } catch (DataIntegrityViolationException e) {
+            throw new EmailAlreadyExistsException("Email already exists");
+        }
     }
 
     @Override
     public User getUserById(Long userId) {
-        User user = users.get(userId);
-        if (user == null) {
-            throw new NotFoundException("User with id " + userId + " not found");
-        }
-        return user;
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User with id " + userId + " not found"));
     }
 
     @Override
     public List<User> getAllUsers() {
-        return new ArrayList<>(users.values());
+        return userRepository.findAll();
     }
 
     @Override
+    @Transactional
     public void deleteUser(Long userId) {
-        User user = users.get(userId);
-        if (user == null) {
+        if (!userRepository.existsById(userId)) {
             throw new NotFoundException("User with id " + userId + " not found");
         }
-        emails.remove(user.getEmail());
-        users.remove(userId);
+        userRepository.deleteById(userId);
     }
 }
