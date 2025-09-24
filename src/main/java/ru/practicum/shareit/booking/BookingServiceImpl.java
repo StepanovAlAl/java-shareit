@@ -62,16 +62,17 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponseDto updateBookingStatus(Long bookingId, Boolean approved, Long userId) {
-        // Проверяем существование пользователя - если пользователь не существует, будет 404
-        User user = userService.getUserById(userId);
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking with id " + bookingId + " not found"));
 
-        // Теперь проверяем, является ли пользователь владельцем вещи
+
         if (!booking.getItem().getOwner().getId().equals(userId)) {
             throw new ItemAccessDeniedException("Only owner can update booking status");
         }
+
+
+        userService.getUserById(userId);
 
         if (booking.getStatus() != BookingStatus.WAITING) {
             throw new ItemValidationException("Booking status cannot be changed");
@@ -85,14 +86,16 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingResponseDto getBookingById(Long bookingId, Long userId) {
 
-        User user = userService.getUserById(userId);
-
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking with id " + bookingId + " not found"));
+
 
         if (!booking.getBooker().getId().equals(userId) && !booking.getItem().getOwner().getId().equals(userId)) {
             throw new NotFoundException("Booking with id " + bookingId + " not found");
         }
+
+
+        userService.getUserById(userId);
 
         return BookingMapper.toDto(booking);
     }
