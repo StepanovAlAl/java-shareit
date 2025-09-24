@@ -1,12 +1,12 @@
 package ru.practicum.shareit.booking;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
 
 import jakarta.validation.Valid;
+
 import java.util.List;
 
 @RestController
@@ -18,25 +18,25 @@ public class BookingController {
 
     @PostMapping
     public BookingResponseDto createBooking(@Valid @RequestBody BookingRequestDto bookingRequestDto,
-                                            @RequestHeader(USER_ID_HEADER) @NotNull Long userId) {
+                                            @RequestHeader(USER_ID_HEADER) Long userId) {
         return bookingService.createBooking(bookingRequestDto, userId);
     }
 
     @PatchMapping("/{bookingId}")
     public BookingResponseDto updateBookingStatus(@PathVariable Long bookingId,
                                                   @RequestParam Boolean approved,
-                                                  @RequestHeader(USER_ID_HEADER) @NotNull Long userId) {
+                                                  @RequestHeader(USER_ID_HEADER) Long userId) {
         return bookingService.updateBookingStatus(bookingId, approved, userId);
     }
 
     @GetMapping("/{bookingId}")
     public BookingResponseDto getBookingById(@PathVariable Long bookingId,
-                                             @RequestHeader(USER_ID_HEADER) @NotNull Long userId) {
+                                             @RequestHeader(USER_ID_HEADER) Long userId) {
         return bookingService.getBookingById(bookingId, userId);
     }
 
     @GetMapping
-    public List<BookingResponseDto> getUserBookings(@RequestHeader(USER_ID_HEADER) @NotNull Long userId,
+    public List<BookingResponseDto> getUserBookings(@RequestHeader(USER_ID_HEADER) Long userId,
                                                     @RequestParam(defaultValue = "ALL") String state,
                                                     @RequestParam(defaultValue = "0") int from,
                                                     @RequestParam(defaultValue = "10") int size) {
@@ -44,7 +44,7 @@ public class BookingController {
     }
 
     @GetMapping("/owner")
-    public List<BookingResponseDto> getOwnerBookings(@RequestHeader(USER_ID_HEADER) @NotNull Long userId,
+    public List<BookingResponseDto> getOwnerBookings(@RequestHeader(USER_ID_HEADER) Long userId,
                                                      @RequestParam(defaultValue = "ALL") String state,
                                                      @RequestParam(defaultValue = "0") int from,
                                                      @RequestParam(defaultValue = "10") int size) {

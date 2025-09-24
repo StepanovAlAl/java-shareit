@@ -8,6 +8,7 @@ import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.EmailAlreadyExistsException;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,11 +19,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User createUser(User user) {
-        try {
-            return userRepository.save(user);
-        } catch (DataIntegrityViolationException e) {
+
+        Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser.isPresent()) {
             throw new EmailAlreadyExistsException("Email already exists");
         }
+
+        return userRepository.save(user);
     }
 
     @Override
@@ -32,7 +35,9 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new NotFoundException("User with id " + userId + " not found"));
 
         if (userUpdates.getEmail() != null && !userUpdates.getEmail().equals(existingUser.getEmail())) {
-            if (userRepository.findByEmail(userUpdates.getEmail()).isPresent()) {
+
+            Optional<User> userWithNewEmail = userRepository.findByEmail(userUpdates.getEmail());
+            if (userWithNewEmail.isPresent()) {
                 throw new EmailAlreadyExistsException("Email already exists");
             }
             existingUser.setEmail(userUpdates.getEmail());
@@ -42,11 +47,7 @@ public class UserServiceImpl implements UserService {
             existingUser.setName(userUpdates.getName());
         }
 
-        try {
-            return userRepository.save(existingUser);
-        } catch (DataIntegrityViolationException e) {
-            throw new EmailAlreadyExistsException("Email already exists");
-        }
+        return userRepository.save(existingUser);
     }
 
     @Override

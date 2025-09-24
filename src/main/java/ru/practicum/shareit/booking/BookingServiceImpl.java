@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
+import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ItemAccessDeniedException;
@@ -48,20 +49,22 @@ public class BookingServiceImpl implements BookingService {
             throw new ItemValidationException("End date must be after start date");
         }
 
-        Booking booking = new Booking();
-        booking.setStart(bookingRequestDto.getStart());
-        booking.setEnd(bookingRequestDto.getEnd());
-        booking.setItem(item);
-        booking.setBooker(booker);
-        booking.setStatus(BookingStatus.WAITING);
 
+        if (hasOverlappingBookings(item.getId(), bookingRequestDto.getStart(), bookingRequestDto.getEnd())) {
+            throw new ItemValidationException("Booking time overlaps with existing booking");
+        }
+
+        Booking booking = BookingMapper.toBooking(bookingRequestDto, item, booker);
         Booking savedBooking = bookingRepository.save(booking);
-        return toDto(savedBooking);
+        return BookingMapper.toDto(savedBooking);
     }
 
     @Override
     @Transactional
     public BookingResponseDto updateBookingStatus(Long bookingId, Boolean approved, Long userId) {
+
+        userService.getUserById(userId);
+
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking with id " + bookingId + " not found"));
 
@@ -75,44 +78,51 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(approved ? BookingStatus.APPROVED : BookingStatus.REJECTED);
         Booking updatedBooking = bookingRepository.save(booking);
-        return toDto(updatedBooking);
+        return BookingMapper.toDto(updatedBooking);
     }
 
     @Override
     public BookingResponseDto getBookingById(Long bookingId, Long userId) {
+
+        userService.getUserById(userId);
+
         Booking booking = bookingRepository.findByIdAndBookerOrOwner(bookingId, userId)
                 .orElseThrow(() -> new NotFoundException("Booking with id " + bookingId + " not found"));
 
-        return toDto(booking);
+        return BookingMapper.toDto(booking);
     }
 
     @Override
     public List<BookingResponseDto> getUserBookings(Long userId, String state, int from, int size) {
+
         userService.getUserById(userId);
+
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "start"));
 
         LocalDateTime now = LocalDateTime.now();
         List<Booking> bookings;
 
-        switch (getState(state)) {
-            case "ALL":
+        BookingState bookingState = parseState(state);
+
+        switch (bookingState) {
+            case ALL:
                 bookings = bookingRepository.findByBookerIdOrderByStartDesc(userId, pageable);
                 break;
-            case "CURRENT":
+            case CURRENT:
                 bookings = bookingRepository.findByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(
                         userId, now, now, pageable);
                 break;
-            case "PAST":
+            case PAST:
                 bookings = bookingRepository.findByBookerIdAndEndBeforeOrderByStartDesc(userId, now, pageable);
                 break;
-            case "FUTURE":
+            case FUTURE:
                 bookings = bookingRepository.findByBookerIdAndStartAfterOrderByStartDesc(userId, now, pageable);
                 break;
-            case "WAITING":
+            case WAITING:
                 bookings = bookingRepository.findByBookerIdAndStatusOrderByStartDesc(
                         userId, BookingStatus.WAITING, pageable);
                 break;
-            case "REJECTED":
+            case REJECTED:
                 bookings = bookingRepository.findByBookerIdAndStatusOrderByStartDesc(
                         userId, BookingStatus.REJECTED, pageable);
                 break;
@@ -120,36 +130,40 @@ public class BookingServiceImpl implements BookingService {
                 throw new IllegalArgumentException("Unknown state: " + state);
         }
 
-        return bookings.stream().map(this::toDto).collect(Collectors.toList());
+        return bookings.stream().map(BookingMapper::toDto).collect(Collectors.toList());
     }
 
     @Override
     public List<BookingResponseDto> getOwnerBookings(Long userId, String state, int from, int size) {
+
         userService.getUserById(userId);
+
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "start"));
 
         LocalDateTime now = LocalDateTime.now();
         List<Booking> bookings;
 
-        switch (getState(state)) {
-            case "ALL":
+        BookingState bookingState = parseState(state);
+
+        switch (bookingState) {
+            case ALL:
                 bookings = bookingRepository.findByItemOwnerIdOrderByStartDesc(userId, pageable);
                 break;
-            case "CURRENT":
+            case CURRENT:
                 bookings = bookingRepository.findByItemOwnerIdAndStartBeforeAndEndAfterOrderByStartDesc(
                         userId, now, now, pageable);
                 break;
-            case "PAST":
+            case PAST:
                 bookings = bookingRepository.findByItemOwnerIdAndEndBeforeOrderByStartDesc(userId, now, pageable);
                 break;
-            case "FUTURE":
+            case FUTURE:
                 bookings = bookingRepository.findByItemOwnerIdAndStartAfterOrderByStartDesc(userId, now, pageable);
                 break;
-            case "WAITING":
+            case WAITING:
                 bookings = bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(
                         userId, BookingStatus.WAITING, pageable);
                 break;
-            case "REJECTED":
+            case REJECTED:
                 bookings = bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(
                         userId, BookingStatus.REJECTED, pageable);
                 break;
@@ -157,27 +171,23 @@ public class BookingServiceImpl implements BookingService {
                 throw new IllegalArgumentException("Unknown state: " + state);
         }
 
-        return bookings.stream().map(this::toDto).collect(Collectors.toList());
+        return bookings.stream().map(BookingMapper::toDto).collect(Collectors.toList());
     }
 
-    private String getState(String state) {
-        return state == null ? "ALL" : state.toUpperCase();
+    private BookingState parseState(String state) {
+        if (state == null) {
+            return BookingState.ALL;
+        }
+        try {
+            return BookingState.valueOf(state.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown state: " + state);
+        }
     }
 
-    private BookingResponseDto toDto(Booking booking) {
-        BookingResponseDto.BookerDto bookerDto = new BookingResponseDto.BookerDto(
-                booking.getBooker().getId(), booking.getBooker().getName());
-
-        BookingResponseDto.ItemDto itemDto = new BookingResponseDto.ItemDto(
-                booking.getItem().getId(), booking.getItem().getName());
-
-        return new BookingResponseDto(
-                booking.getId(),
-                booking.getStart(),
-                booking.getEnd(),
-                booking.getStatus(),
-                bookerDto,
-                itemDto
-        );
+    private boolean hasOverlappingBookings(Long itemId, LocalDateTime start, LocalDateTime end) {
+        List<Booking> overlappingBookings = bookingRepository.findOverlappingBookings(
+                itemId, start, end, BookingStatus.APPROVED);
+        return !overlappingBookings.isEmpty();
     }
 }

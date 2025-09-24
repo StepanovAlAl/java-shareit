@@ -5,17 +5,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.BookingStatus;
+import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ItemAccessDeniedException;
 import ru.practicum.shareit.exception.ItemValidationException;
 import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.item.mapper.CommentMapper;
+import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserService;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,15 +34,9 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public ItemDto createItem(ItemRequestDto itemRequestDto, Long userId) {
         User owner = userService.getUserById(userId);
-        Item item = new Item();
-        item.setName(itemRequestDto.getName());
-        item.setDescription(itemRequestDto.getDescription());
-        item.setAvailable(itemRequestDto.getAvailable());
-        item.setOwner(owner);
-        item.setRequestId(itemRequestDto.getRequestId());
-
+        Item item = ItemMapper.toItem(itemRequestDto, owner);
         Item savedItem = itemRepository.save(item);
-        return toItemDto(savedItem);
+        return ItemMapper.toDto(savedItem);
     }
 
     @Override
@@ -53,18 +50,9 @@ public class ItemServiceImpl implements ItemService {
             throw new ItemAccessDeniedException("Only owner can update item");
         }
 
-        if (itemRequestDto.getName() != null) {
-            existingItem.setName(itemRequestDto.getName());
-        }
-        if (itemRequestDto.getDescription() != null) {
-            existingItem.setDescription(itemRequestDto.getDescription());
-        }
-        if (itemRequestDto.getAvailable() != null) {
-            existingItem.setAvailable(itemRequestDto.getAvailable());
-        }
-
+        ItemMapper.updateItemFromDto(itemRequestDto, existingItem);
         Item updatedItem = itemRepository.save(existingItem);
-        return toItemDto(updatedItem);
+        return ItemMapper.toDto(updatedItem);
     }
 
     @Override
@@ -86,15 +74,7 @@ public class ItemServiceImpl implements ItemService {
             nextBooking = getNextBooking(itemId);
         }
 
-        return new ItemResponseDto(
-                item.getId(),
-                item.getName(),
-                item.getDescription(),
-                item.getAvailable(),
-                lastBooking,
-                nextBooking,
-                comments
-        );
+        return ItemMapper.toItemResponseDto(item, lastBooking, nextBooking, comments);
     }
 
     @Override
@@ -107,17 +87,7 @@ public class ItemServiceImpl implements ItemService {
             ItemWithBookingsDto.BookingDto lastBooking = getLastBookingWithDates(item.getId());
             ItemWithBookingsDto.BookingDto nextBooking = getNextBookingWithDates(item.getId());
 
-            return new ItemWithBookingsDto(
-                    item.getId(),
-                    item.getName(),
-                    item.getDescription(),
-                    item.getAvailable(),
-                    item.getOwner().getId(),
-                    item.getRequestId(),
-                    lastBooking,
-                    nextBooking,
-                    comments
-            );
+            return ItemMapper.toItemWithBookingsDto(item, lastBooking, nextBooking, comments);
         }).collect(Collectors.toList());
     }
 
@@ -127,7 +97,7 @@ public class ItemServiceImpl implements ItemService {
             return List.of();
         }
         return itemRepository.searchAvailableItems(text).stream()
-                .map(this::toItemDto)
+                .map(ItemMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -152,7 +122,7 @@ public class ItemServiceImpl implements ItemService {
         comment.setCreated(LocalDateTime.now());
 
         Comment savedComment = commentRepository.save(comment);
-        return toCommentResponseDto(savedComment);
+        return CommentMapper.toDto(savedComment);
     }
 
     private ItemResponseDto.BookingDto getLastBooking(Long itemId) {
@@ -197,27 +167,7 @@ public class ItemServiceImpl implements ItemService {
 
     private List<CommentResponseDto> getCommentsForItem(Long itemId) {
         return commentRepository.findByItemIdOrderByCreatedDesc(itemId).stream()
-                .map(this::toCommentResponseDto)
+                .map(CommentMapper::toDto)
                 .collect(Collectors.toList());
-    }
-
-    private CommentResponseDto toCommentResponseDto(Comment comment) {
-        return new CommentResponseDto(
-                comment.getId(),
-                comment.getText(),
-                comment.getAuthor().getName(),
-                comment.getCreated()
-        );
-    }
-
-    private ItemDto toItemDto(Item item) {
-        return new ItemDto(
-                item.getId(),
-                item.getName(),
-                item.getDescription(),
-                item.getAvailable(),
-                item.getOwner().getId(),
-                item.getRequestId()
-        );
     }
 }
