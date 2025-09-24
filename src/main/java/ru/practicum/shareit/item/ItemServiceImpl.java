@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.BookingStatus;
+import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ItemAccessDeniedException;
 import ru.practicum.shareit.exception.ItemValidationException;
@@ -106,8 +107,10 @@ public class ItemServiceImpl implements ItemService {
         Item item = getItemById(itemId);
         User author = userService.getUserById(userId);
 
-        boolean hasBooked = bookingRepository.findByBookerIdAndItemIdAndEndBefore(userId, itemId, LocalDateTime.now())
-                .stream()
+        List<Booking> pastBookings = bookingRepository.findByBookerIdAndItemIdAndEndBefore(
+                userId, itemId, LocalDateTime.now());
+
+        boolean hasBooked = pastBookings.stream()
                 .anyMatch(booking -> booking.getStatus() == BookingStatus.APPROVED);
 
         if (!hasBooked) {

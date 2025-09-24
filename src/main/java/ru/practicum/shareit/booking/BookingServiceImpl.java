@@ -62,12 +62,13 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponseDto updateBookingStatus(Long bookingId, Boolean approved, Long userId) {
-
-        userService.getUserById(userId);
+        // Проверяем существование пользователя - если пользователь не существует, будет 404
+        User user = userService.getUserById(userId);
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking with id " + bookingId + " not found"));
 
+        // Теперь проверяем, является ли пользователь владельцем вещи
         if (!booking.getItem().getOwner().getId().equals(userId)) {
             throw new ItemAccessDeniedException("Only owner can update booking status");
         }
@@ -84,10 +85,14 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingResponseDto getBookingById(Long bookingId, Long userId) {
 
-        userService.getUserById(userId);
+        User user = userService.getUserById(userId);
 
-        Booking booking = bookingRepository.findByIdAndBookerOrOwner(bookingId, userId)
+        Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking with id " + bookingId + " not found"));
+
+        if (!booking.getBooker().getId().equals(userId) && !booking.getItem().getOwner().getId().equals(userId)) {
+            throw new NotFoundException("Booking with id " + bookingId + " not found");
+        }
 
         return BookingMapper.toDto(booking);
     }
@@ -95,7 +100,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public List<BookingResponseDto> getUserBookings(Long userId, String state, int from, int size) {
 
-        userService.getUserById(userId);
+        User user = userService.getUserById(userId);
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "start"));
 
@@ -136,7 +141,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public List<BookingResponseDto> getOwnerBookings(Long userId, String state, int from, int size) {
 
-        userService.getUserById(userId);
+        User user = userService.getUserById(userId);
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "start"));
 
