@@ -116,7 +116,8 @@ public class ItemServiceImpl implements ItemService {
                 userId, itemId, LocalDateTime.now());
 
         boolean hasBooked = pastBookings.stream()
-                .anyMatch(booking -> booking.getStatus() == BookingStatus.APPROVED);
+                .anyMatch(booking -> booking.getStatus() == BookingStatus.APPROVED &&
+                        booking.getEnd().isBefore(LocalDateTime.now()));
 
         if (!hasBooked) {
             throw new ItemValidationException("User can only comment on items they have booked in the past");
