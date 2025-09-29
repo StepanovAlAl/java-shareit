@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
+import ru.practicum.shareit.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -124,5 +125,77 @@ class BookingControllerTest {
                         .param("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1));
+    }
+
+    @Test
+    void getNonExistentBooking() throws Exception {
+        when(bookingService.getBookingById(anyLong(), anyLong()))
+                .thenThrow(new NotFoundException("Booking not found"));
+
+        mockMvc.perform(get("/bookings/999")
+                        .header("X-Sharer-User-Id", 1L))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createWithInvalidData() throws Exception {
+        String invalidJson = "{\"itemId\":null,\"start\":null,\"end\":null}";
+
+        mockMvc.perform(post("/bookings")
+                        .header("X-Sharer-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidJson))
+                .andExpect(status().isBadRequest()); // Ожидаем 400
+    }
+
+    @Test
+    void createWithPastStartDate() throws Exception {
+        BookingRequestDto request = new BookingRequestDto(
+                1L,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().plusDays(1)
+        );
+
+        mockMvc.perform(post("/bookings")
+                        .header("X-Sharer-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createWithNonExistentItem() throws Exception {
+        BookingRequestDto request = new BookingRequestDto(
+                999L,
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(2)
+        );
+
+        when(bookingService.createBooking(any(), anyLong()))
+                .thenThrow(new NotFoundException("Item not found"));
+
+        mockMvc.perform(post("/bookings")
+                        .header("X-Sharer-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createBookingOwnItem() throws Exception {
+        BookingRequestDto request = new BookingRequestDto(
+                1L,
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(2)
+        );
+
+        when(bookingService.createBooking(any(), anyLong()))
+                .thenThrow(new NotFoundException("Owner cannot book their own item"));
+
+        mockMvc.perform(post("/bookings")
+                        .header("X-Sharer-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
     }
 }
