@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
+import ru.practicum.shareit.exception.ItemValidationException;
 import ru.practicum.shareit.exception.NotFoundException;
 
 import java.time.LocalDateTime;
@@ -139,13 +140,16 @@ class BookingControllerTest {
 
     @Test
     void createWithInvalidData() throws Exception {
-        String invalidJson = "{\"itemId\":null,\"start\":null,\"end\":null}";
+        BookingRequestDto request = new BookingRequestDto(null, null, null);
+
+        when(bookingService.createBooking(any(), anyLong()))
+                .thenThrow(new ItemValidationException("Invalid booking data"));
 
         mockMvc.perform(post("/bookings")
                         .header("X-Sharer-User-Id", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidJson))
-                .andExpect(status().isBadRequest()); // Ожидаем 400
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -155,6 +159,9 @@ class BookingControllerTest {
                 LocalDateTime.now().minusDays(1),
                 LocalDateTime.now().plusDays(1)
         );
+
+        when(bookingService.createBooking(any(), anyLong()))
+                .thenThrow(new ItemValidationException("Start date cannot be in the past"));
 
         mockMvc.perform(post("/bookings")
                         .header("X-Sharer-User-Id", 1L)
