@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
 import ru.practicum.shareit.client.BaseClient;
+import ru.practicum.shareit.item.dto.ItemRequestGatewayDto;
+import ru.practicum.shareit.item.dto.CommentGatewayDto;
 
 @Service
 public class ItemClient extends BaseClient {
@@ -26,11 +28,11 @@ public class ItemClient extends BaseClient {
         );
     }
 
-    public ResponseEntity<Object> createItem(Long userId, Object itemDto) {
+    public ResponseEntity<Object> createItem(Long userId, ItemRequestGatewayDto itemDto) {
         return post("", userId, itemDto);
     }
 
-    public ResponseEntity<Object> updateItem(Long userId, Long itemId, Object itemDto) {
+    public ResponseEntity<Object> updateItem(Long userId, Long itemId, ItemRequestGatewayDto itemDto) {
         return patch("/" + itemId, userId, itemDto);
     }
 
@@ -47,7 +49,7 @@ public class ItemClient extends BaseClient {
         return get("/search?text={text}", null, parameters);
     }
 
-    public ResponseEntity<Object> addComment(Long userId, Long itemId, Object commentDto) {
+    public ResponseEntity<Object> addComment(Long userId, Long itemId, CommentGatewayDto commentDto) {
         return post("/" + itemId + "/comment", userId, commentDto);
     }
 }

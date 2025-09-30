@@ -6,6 +6,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +52,7 @@ public class BookingController {
     public ResponseEntity<Object> updateBookingStatus(
             @RequestHeader("X-Sharer-User-Id") long userId,
             @PathVariable Long bookingId,
-            @RequestParam Boolean approved) {
+            @RequestParam @NotNull Boolean approved) {
         log.info("Updating booking status {}, userId={}, approved={}", bookingId, userId, approved);
         return bookingClient.updateBookingStatus(userId, bookingId, approved);
     }

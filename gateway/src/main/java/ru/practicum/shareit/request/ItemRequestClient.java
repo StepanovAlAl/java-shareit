@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
 import ru.practicum.shareit.client.BaseClient;
+import ru.practicum.shareit.request.dto.ItemRequestGatewayDto;
 
 @Service
 public class ItemRequestClient extends BaseClient {
@@ -26,7 +27,7 @@ public class ItemRequestClient extends BaseClient {
         );
     }
 
-    public ResponseEntity<Object> createRequest(Long userId, Object requestDto) {
+    public ResponseEntity<Object> createRequest(Long userId, ItemRequestGatewayDto requestDto) {
         return post("", userId, requestDto);
     }
 
