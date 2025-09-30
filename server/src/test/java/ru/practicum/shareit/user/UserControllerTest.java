@@ -31,9 +31,9 @@ class UserControllerTest {
     @Test
     void create() throws Exception {
         UserDto request = new UserDto(null, "user", "user@email.com");
-        User user = new User(1L, "user", "user@email.com");
+        UserDto response = new UserDto(1L, "user", "user@email.com");
 
-        when(userService.createUser(any())).thenReturn(user);
+        when(userService.createUser(any())).thenReturn(response);
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -45,9 +45,9 @@ class UserControllerTest {
     @Test
     void update() throws Exception {
         UserDto request = new UserDto(null, "new", "new@email.com");
-        User user = new User(1L, "new", "new@email.com");
+        UserDto response = new UserDto(1L, "new", "new@email.com");
 
-        when(userService.updateUser(anyLong(), any())).thenReturn(user);
+        when(userService.updateUser(anyLong(), any())).thenReturn(response);
 
         mockMvc.perform(patch("/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -58,9 +58,9 @@ class UserControllerTest {
 
     @Test
     void getUser() throws Exception {
-        User user = new User(1L, "user", "user@email.com");
+        UserDto response = new UserDto(1L, "user", "user@email.com");
 
-        when(userService.getUserById(anyLong())).thenReturn(user);
+        when(userService.getUserById(anyLong())).thenReturn(response);
 
         mockMvc.perform(get("/users/1"))
                 .andExpect(status().isOk())
@@ -69,7 +69,7 @@ class UserControllerTest {
 
     @Test
     void getAll() throws Exception {
-        User user = new User(1L, "user", "user@email.com");
+        UserDto user = new UserDto(1L, "user", "user@email.com");
 
         when(userService.getAllUsers()).thenReturn(List.of(user));
 

@@ -3,13 +3,16 @@ package ru.practicum.shareit.user;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.user.dto.UserDto;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @Transactional
 class UserServiceTest {
 
@@ -21,9 +24,9 @@ class UserServiceTest {
 
     @Test
     void create() {
-        User user = new User(null, "user", "user@email.com");
+        UserDto userDto = new UserDto(null, "user", "user@email.com");
 
-        User result = userService.createUser(user);
+        UserDto result = userService.createUser(userDto);
 
         assertNotNull(result.getId());
         assertEquals("user", result.getName());
@@ -32,9 +35,9 @@ class UserServiceTest {
     @Test
     void update() {
         User user = userRepository.save(new User(null, "user", "user@email.com"));
-        User updates = new User(null, "new", "new@email.com");
+        UserDto updates = new UserDto(null, "new", "new@email.com");
 
-        User result = userService.updateUser(user.getId(), updates);
+        UserDto result = userService.updateUser(user.getId(), updates);
 
         assertEquals("new", result.getName());
         assertEquals("new@email.com", result.getEmail());
@@ -44,7 +47,7 @@ class UserServiceTest {
     void get() {
         User user = userRepository.save(new User(null, "user", "user@email.com"));
 
-        User result = userService.getUserById(user.getId());
+        UserDto result = userService.getUserById(user.getId());
 
         assertEquals(user.getId(), result.getId());
     }
@@ -54,7 +57,7 @@ class UserServiceTest {
         userRepository.save(new User(null, "user1", "user1@email.com"));
         userRepository.save(new User(null, "user2", "user2@email.com"));
 
-        List<User> result = userService.getAllUsers();
+        List<UserDto> result = userService.getAllUsers();
 
         assertEquals(2, result.size());
     }
