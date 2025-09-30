@@ -21,11 +21,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import ru.practicum.shareit.item.dto.CommentRequestDto;
-import ru.practicum.shareit.item.dto.CommentResponseDto;
-import ru.practicum.shareit.item.dto.ItemResponseDto;
-import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -38,7 +33,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public ItemDto createItem(ItemRequestDto itemRequestDto, Long userId) {
-        User owner = userService.getUserById(userId);
+        User owner = toUser(userService.getUserById(userId));
         Item item = ItemMapper.toItem(itemRequestDto, owner);
         Item savedItem = itemRepository.save(item);
         return ItemMapper.toDto(savedItem);
@@ -110,14 +105,13 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public CommentResponseDto addComment(Long itemId, CommentRequestDto commentRequestDto, Long userId) {
         Item item = getItemById(itemId);
-        User author = userService.getUserById(userId);
+        User author = toUser(userService.getUserById(userId));
 
         List<Booking> pastBookings = bookingRepository.findByBookerIdAndItemIdAndEndBefore(
                 userId, itemId, LocalDateTime.now());
 
         boolean hasBooked = pastBookings.stream()
-                .anyMatch(booking -> booking.getStatus() == BookingStatus.APPROVED &&
-                        booking.getEnd().isBefore(LocalDateTime.now()));
+                .anyMatch(booking -> booking.getStatus() == BookingStatus.APPROVED);
 
         if (!hasBooked) {
             throw new ItemValidationException("User can only comment on items they have booked in the past");
@@ -185,5 +179,9 @@ public class ItemServiceImpl implements ItemService {
         return commentRepository.findByItemIdOrderByCreatedDesc(itemId).stream()
                 .map(CommentMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    private User toUser(ru.practicum.shareit.user.dto.UserDto userDto) {
+        return new User(userDto.getId(), userDto.getName(), userDto.getEmail());
     }
 }

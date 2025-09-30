@@ -30,7 +30,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Override
     @Transactional
     public ItemRequestDto createRequest(ItemRequestDto itemRequestDto, Long userId) {
-        User requestor = userService.getUserById(userId);
+        User requestor = toUser(userService.getUserById(userId));
 
         ItemRequest itemRequest = new ItemRequest();
         itemRequest.setDescription(itemRequestDto.getDescription());
@@ -45,6 +45,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     public List<ItemRequestDto> getUserRequests(Long userId) {
         userService.getUserById(userId);
         List<ItemRequest> requests = itemRequestRepository.findByRequestorIdOrderByCreatedDesc(userId);
+
 
         List<Long> requestIds = requests.stream()
                 .map(ItemRequest::getId)
@@ -66,6 +67,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         userService.getUserById(userId);
         Pageable pageable = PageRequest.of(from > 0 ? from / size : 0, size);
         List<ItemRequest> requests = itemRequestRepository.findByRequestorIdNotOrderByCreatedDesc(userId, pageable);
+
 
         List<Long> requestIds = requests.stream()
                 .map(ItemRequest::getId)
@@ -90,5 +92,9 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
         List<ItemDto> items = itemService.getItemsByRequestId(requestId);
         return ItemRequestMapper.toDto(request, items);
+    }
+
+    private User toUser(ru.practicum.shareit.user.dto.UserDto userDto) {
+        return new User(userDto.getId(), userDto.getName(), userDto.getEmail());
     }
 }

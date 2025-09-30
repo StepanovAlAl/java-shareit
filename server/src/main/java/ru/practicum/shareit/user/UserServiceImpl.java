@@ -5,59 +5,69 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.EmailAlreadyExistsException;
+import ru.practicum.shareit.user.dto.UserDto;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
+
     private final UserRepository userRepository;
 
     @Override
     @Transactional
-    public User createUser(User user) {
+    public UserDto createUser(UserDto userDto) {
+        User user = toUser(userDto);
 
         Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
         if (existingUser.isPresent()) {
             throw new EmailAlreadyExistsException("Email already exists");
         }
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        return toDto(savedUser);
     }
 
     @Override
     @Transactional
-    public User updateUser(Long userId, User userUpdates) {
+    public UserDto updateUser(Long userId, UserDto userUpdates) {
         User existingUser = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User with id " + userId + " not found"));
 
-        if (userUpdates.getEmail() != null && !userUpdates.getEmail().equals(existingUser.getEmail())) {
-
-            Optional<User> userWithNewEmail = userRepository.findByEmail(userUpdates.getEmail());
-            if (userWithNewEmail.isPresent()) {
-                throw new EmailAlreadyExistsException("Email already exists");
+        if (userUpdates.getEmail() != null && !userUpdates.getEmail().isBlank()) {
+            if (!userUpdates.getEmail().equals(existingUser.getEmail())) {
+                Optional<User> userWithNewEmail = userRepository.findByEmail(userUpdates.getEmail());
+                if (userWithNewEmail.isPresent()) {
+                    throw new EmailAlreadyExistsException("Email already exists");
+                }
+                existingUser.setEmail(userUpdates.getEmail());
             }
-            existingUser.setEmail(userUpdates.getEmail());
         }
 
-        if (userUpdates.getName() != null) {
+        if (userUpdates.getName() != null && !userUpdates.getName().isBlank()) {
             existingUser.setName(userUpdates.getName());
         }
 
-        return userRepository.save(existingUser);
+        User updatedUser = userRepository.save(existingUser);
+        return toDto(updatedUser);
     }
 
     @Override
-    public User getUserById(Long userId) {
-        return userRepository.findById(userId)
+    public UserDto getUserById(Long userId) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User with id " + userId + " not found"));
+        return toDto(user);
     }
 
     @Override
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserDto> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -67,5 +77,13 @@ public class UserServiceImpl implements UserService {
             throw new NotFoundException("User with id " + userId + " not found");
         }
         userRepository.deleteById(userId);
+    }
+
+    private User toUser(UserDto userDto) {
+        return new User(userDto.getId(), userDto.getName(), userDto.getEmail());
+    }
+
+    private UserDto toDto(User user) {
+        return new UserDto(user.getId(), user.getName(), user.getEmail());
     }
 }

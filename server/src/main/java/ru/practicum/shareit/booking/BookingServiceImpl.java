@@ -33,8 +33,22 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponseDto createBooking(BookingRequestDto bookingRequestDto, Long userId) {
-        User booker = userService.getUserById(userId);
+        User booker = toUser(userService.getUserById(userId));
         Item item = itemService.getItemById(bookingRequestDto.getItemId());
+
+        if (bookingRequestDto.getStart() == null) {
+            throw new ItemValidationException("Start date cannot be null");
+        }
+        if (bookingRequestDto.getEnd() == null) {
+            throw new ItemValidationException("End date cannot be null");
+        }
+        if (bookingRequestDto.getStart().isBefore(LocalDateTime.now())) {
+            throw new ItemValidationException("Start date cannot be in the past");
+        }
+        if (bookingRequestDto.getEnd().isBefore(bookingRequestDto.getStart()) ||
+                bookingRequestDto.getEnd().equals(bookingRequestDto.getStart())) {
+            throw new ItemValidationException("End date must be after start date");
+        }
 
         if (!item.getAvailable()) {
             throw new ItemValidationException("Item is not available for booking");
@@ -43,12 +57,6 @@ public class BookingServiceImpl implements BookingService {
         if (item.getOwner().getId().equals(userId)) {
             throw new NotFoundException("Owner cannot book their own item");
         }
-
-        if (bookingRequestDto.getEnd().isBefore(bookingRequestDto.getStart()) ||
-                bookingRequestDto.getEnd().equals(bookingRequestDto.getStart())) {
-            throw new ItemValidationException("End date must be after start date");
-        }
-
 
         if (hasOverlappingBookings(item.getId(), bookingRequestDto.getStart(), bookingRequestDto.getEnd())) {
             throw new ItemValidationException("Booking time overlaps with existing booking");
@@ -62,15 +70,12 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponseDto updateBookingStatus(Long bookingId, Boolean approved, Long userId) {
-
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking with id " + bookingId + " not found"));
-
 
         if (!booking.getItem().getOwner().getId().equals(userId)) {
             throw new ItemAccessDeniedException("Only owner can update booking status");
         }
-
 
         userService.getUserById(userId);
 
@@ -85,15 +90,12 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponseDto getBookingById(Long bookingId, Long userId) {
-
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking with id " + bookingId + " not found"));
-
 
         if (!booking.getBooker().getId().equals(userId) && !booking.getItem().getOwner().getId().equals(userId)) {
             throw new NotFoundException("Booking with id " + bookingId + " not found");
         }
-
 
         userService.getUserById(userId);
 
@@ -102,15 +104,14 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponseDto> getUserBookings(Long userId, String state, int from, int size) {
-
-        User user = userService.getUserById(userId);
+        User user = toUser(userService.getUserById(userId));
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "start"));
 
         LocalDateTime now = LocalDateTime.now();
         List<Booking> bookings;
 
-        BookingState bookingState = parseState(state);
+        ru.practicum.shareit.booking.BookingState bookingState = parseState(state);
 
         switch (bookingState) {
             case ALL:
@@ -143,15 +144,14 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponseDto> getOwnerBookings(Long userId, String state, int from, int size) {
-
-        User user = userService.getUserById(userId);
+        User user = toUser(userService.getUserById(userId));
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "start"));
 
         LocalDateTime now = LocalDateTime.now();
         List<Booking> bookings;
 
-        BookingState bookingState = parseState(state);
+        ru.practicum.shareit.booking.BookingState bookingState = parseState(state);
 
         switch (bookingState) {
             case ALL:
@@ -197,5 +197,9 @@ public class BookingServiceImpl implements BookingService {
         List<Booking> overlappingBookings = bookingRepository.findOverlappingBookings(
                 itemId, start, end, BookingStatus.APPROVED);
         return !overlappingBookings.isEmpty();
+    }
+
+    private User toUser(ru.practicum.shareit.user.dto.UserDto userDto) {
+        return new User(userDto.getId(), userDto.getName(), userDto.getEmail());
     }
 }
