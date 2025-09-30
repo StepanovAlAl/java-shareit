@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ru.practicum.shareit.item.dto.ItemRequestGatewayDto;
+import ru.practicum.shareit.item.dto.CommentGatewayDto;
 
 @Controller
 @RequestMapping(path = "/items")
@@ -48,7 +49,7 @@ public class ItemController {
     @PostMapping("/{itemId}/comment")
     public ResponseEntity<Object> addComment(@RequestHeader("X-Sharer-User-Id") Long userId,
                                              @PathVariable Long itemId,
-                                             @RequestBody @Valid Object commentDto) {
+                                             @RequestBody @Valid CommentGatewayDto commentDto) {
         return itemClient.addComment(userId, itemId, commentDto);
     }
 }
