@@ -4,6 +4,7 @@ import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.model.Item;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ItemService {
     ItemDto createItem(ItemRequestDto itemRequestDto, Long userId);
@@ -21,4 +22,6 @@ public interface ItemService {
     CommentResponseDto addComment(Long itemId, CommentRequestDto commentRequestDto, Long userId);
 
     List<ItemDto> getItemsByRequestId(Long requestId);
+
+    Map<Long, List<ItemDto>> getItemsByRequestIds(List<Long> requestIds);
 }

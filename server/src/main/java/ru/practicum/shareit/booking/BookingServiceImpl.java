@@ -111,7 +111,7 @@ public class BookingServiceImpl implements BookingService {
         LocalDateTime now = LocalDateTime.now();
         List<Booking> bookings;
 
-        ru.practicum.shareit.booking.BookingState bookingState = parseState(state);
+        BookingState bookingState = parseState(state);
 
         switch (bookingState) {
             case ALL:
@@ -151,7 +151,7 @@ public class BookingServiceImpl implements BookingService {
         LocalDateTime now = LocalDateTime.now();
         List<Booking> bookings;
 
-        ru.practicum.shareit.booking.BookingState bookingState = parseState(state);
+        BookingState bookingState = parseState(state);
 
         switch (bookingState) {
             case ALL:

@@ -19,6 +19,7 @@ import ru.practicum.shareit.user.UserService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -111,7 +112,8 @@ public class ItemServiceImpl implements ItemService {
                 userId, itemId, LocalDateTime.now());
 
         boolean hasBooked = pastBookings.stream()
-                .anyMatch(booking -> booking.getStatus() == BookingStatus.APPROVED);
+                .anyMatch(booking -> booking.getStatus() == BookingStatus.APPROVED &&
+                        booking.getEnd().isBefore(LocalDateTime.now()));
 
         if (!hasBooked) {
             throw new ItemValidationException("User can only comment on items they have booked in the past");
@@ -133,6 +135,21 @@ public class ItemServiceImpl implements ItemService {
         return items.stream()
                 .map(ItemMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<Long, List<ItemDto>> getItemsByRequestIds(List<Long> requestIds) {
+        if (requestIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Item> items = itemRepository.findByRequestIdIn(requestIds);
+
+        return items.stream()
+                .collect(Collectors.groupingBy(
+                        item -> item.getRequest().getId(),
+                        Collectors.mapping(ItemMapper::toDto, Collectors.toList())
+                ));
     }
 
     private ItemResponseDto.BookingDto getLastBooking(Long itemId) {

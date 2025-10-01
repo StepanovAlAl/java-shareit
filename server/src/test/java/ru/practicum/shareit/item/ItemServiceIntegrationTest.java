@@ -7,29 +7,32 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemRequestDto;
-import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.user.UserRepository;
+import ru.practicum.shareit.user.UserService;
+import ru.practicum.shareit.user.dto.UserDto;
+
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class ItemServiceTest {
+class ItemServiceIntegrationTest {
 
     @Autowired
     private ItemService itemService;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Test
     void getUserItems() {
-        User user = userRepository.save(new User(null, "user", "user@email.com"));
-        ItemRequestDto request = new ItemRequestDto("item", "desc", true, null);
-        itemService.createItem(request, user.getId());
+        UserDto userDto = new UserDto(null, "user", "user@email.com");
+        UserDto createdUser = userService.createUser(userDto);
 
-        var result = itemService.getUserItems(user.getId());
+        ItemRequestDto request = new ItemRequestDto("item", "desc", true, null);
+        itemService.createItem(request, createdUser.getId());
+
+        var result = itemService.getUserItems(createdUser.getId());
 
         assertEquals(1, result.size());
         assertEquals("item", result.get(0).getName());
@@ -37,9 +40,11 @@ class ItemServiceTest {
 
     @Test
     void searchItems() {
-        User user = userRepository.save(new User(null, "user", "user@email.com"));
+        UserDto userDto = new UserDto(null, "user", "user@email.com");
+        UserDto createdUser = userService.createUser(userDto);
+
         ItemRequestDto request = new ItemRequestDto("drill", "tool", true, null);
-        itemService.createItem(request, user.getId());
+        itemService.createItem(request, createdUser.getId());
 
         var result = itemService.searchItems("drill");
 
@@ -56,10 +61,12 @@ class ItemServiceTest {
 
     @Test
     void createItem() {
-        User user = userRepository.save(new User(null, "user", "user@email.com"));
+        UserDto userDto = new UserDto(null, "user", "user@email.com");
+        UserDto createdUser = userService.createUser(userDto);
+
         ItemRequestDto request = new ItemRequestDto("item", "desc", true, null);
 
-        ItemDto result = itemService.createItem(request, user.getId());
+        ItemDto result = itemService.createItem(request, createdUser.getId());
 
         assertNotNull(result.getId());
         assertEquals("item", result.getName());
@@ -67,11 +74,13 @@ class ItemServiceTest {
 
     @Test
     void getItem() {
-        User user = userRepository.save(new User(null, "user", "user@email.com"));
-        ItemRequestDto request = new ItemRequestDto("item", "desc", true, null);
-        ItemDto item = itemService.createItem(request, user.getId());
+        UserDto userDto = new UserDto(null, "user", "user@email.com");
+        UserDto createdUser = userService.createUser(userDto);
 
-        var result = itemService.getItemDtoById(item.getId(), user.getId());
+        ItemRequestDto request = new ItemRequestDto("item", "desc", true, null);
+        ItemDto item = itemService.createItem(request, createdUser.getId());
+
+        var result = itemService.getItemDtoById(item.getId(), createdUser.getId());
 
         assertEquals(item.getId(), result.getId());
     }

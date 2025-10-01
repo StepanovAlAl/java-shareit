@@ -51,14 +51,10 @@ public class ItemRequestServiceImpl implements ItemRequestService {
                 .map(ItemRequest::getId)
                 .collect(Collectors.toList());
 
-        Map<Long, List<ItemDto>> itemsByRequestId = requestIds.stream()
-                .collect(Collectors.toMap(
-                        requestId -> requestId,
-                        itemService::getItemsByRequestId
-                ));
+        Map<Long, List<ItemDto>> itemsByRequestId = itemService.getItemsByRequestIds(requestIds);
 
         return requests.stream()
-                .map(request -> ItemRequestMapper.toDto(request, itemsByRequestId.get(request.getId())))
+                .map(request -> ItemRequestMapper.toDto(request, itemsByRequestId.getOrDefault(request.getId(), List.of())))
                 .collect(Collectors.toList());
     }
 
@@ -73,14 +69,10 @@ public class ItemRequestServiceImpl implements ItemRequestService {
                 .map(ItemRequest::getId)
                 .collect(Collectors.toList());
 
-        Map<Long, List<ItemDto>> itemsByRequestId = requestIds.stream()
-                .collect(Collectors.toMap(
-                        requestId -> requestId,
-                        itemService::getItemsByRequestId
-                ));
+        Map<Long, List<ItemDto>> itemsByRequestId = itemService.getItemsByRequestIds(requestIds);
 
         return requests.stream()
-                .map(request -> ItemRequestMapper.toDto(request, itemsByRequestId.get(request.getId())))
+                .map(request -> ItemRequestMapper.toDto(request, itemsByRequestId.getOrDefault(request.getId(), List.of())))
                 .collect(Collectors.toList());
     }
 
